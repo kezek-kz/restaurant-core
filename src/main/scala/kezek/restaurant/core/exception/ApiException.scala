@@ -1,13 +1,13 @@
 package kezek.restaurant.core.exception
 
 import akka.http.scaladsl.model.StatusCode
-import kezek.restaurant.core.exception.ApiException.{ErrorMessage, system}
+import ApiException.{ErrorMessage, system}
 
 object ApiException {
 
   case class ErrorMessage(system: Int, error: String)
 
-  val system: Int = 1
+  val system: Int = 3
 
   def throwableToErrorMessage(ex: Throwable): ErrorMessage = {
     ErrorMessage(error = ex.getMessage, system = system)
@@ -15,7 +15,7 @@ object ApiException {
 
 }
 
-case class ApiException(code: StatusCode, message: String) extends RuntimeException {
+case class ApiException(code: StatusCode, message: String, system: Int = system) extends RuntimeException {
 
   override def getMessage: String = message
 

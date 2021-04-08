@@ -5,19 +5,19 @@ import akka.http.scaladsl.server.Route
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
-import kezek.restaurant.core.api.http.route.RestaurantHttpRoutes
+import kezek.restaurant.core.api.http.route.ProductHttpRoutes
 
 import javax.ws.rs.{GET, Path}
 
 @Path("/api/v1")
 trait HttpRoutes
-  extends RestaurantHttpRoutes {
+  extends ProductHttpRoutes {
 
   val routes: Route =
     pathPrefix("api" / "v1") {
       concat(
         healthcheck,
-        restaurantHttpRoutes
+        productHttpRoutes
       )
     }
 

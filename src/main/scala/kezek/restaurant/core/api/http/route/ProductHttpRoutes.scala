@@ -12,35 +12,35 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import io.swagger.v3.oas.annotations.{Operation, Parameter}
 import kezek.restaurant.core.codec.MainCodec
-import kezek.restaurant.core.domain.Restaurant
-import kezek.restaurant.core.domain.dto.{CreateRestaurantDTO, RestaurantListWithTotalDTO, UpdateRestaurantDTO}
-import kezek.restaurant.core.service.RestaurantService
+import kezek.restaurant.core.domain.Product
+import kezek.restaurant.core.domain.dto.{CreateProductDTO, ProductListWithTotalDTO, UpdateProductDTO}
+import kezek.restaurant.core.service.ProductService
 import kezek.restaurant.core.util.{HttpUtil, SortUtil}
 import org.joda.time.DateTime
 
 import javax.ws.rs._
 import scala.util.{Failure, Success}
 
-trait RestaurantHttpRoutes extends MainCodec {
+trait ProductHttpRoutes extends MainCodec {
 
-  val restaurantService: RestaurantService
+  val productService: ProductService
 
-  def restaurantHttpRoutes: Route = {
-    pathPrefix("restaurants") {
+  def productHttpRoutes: Route = {
+    pathPrefix("products") {
       concat(
-        updateRestaurant,
-        getRestaurantById,
-        deleteRestaurant,
-        paginateRestaurants,
-        createRestaurant
+        updateProduct,
+        getProductById,
+        deleteProduct,
+        paginateProducts,
+        createProduct
       )
     }
   }
 
   @GET
   @Operation(
-    summary = "Get restaurant list",
-    description = "Get filtered and paginated restaurant list",
+    summary = "Get product list",
+    description = "Get filtered and paginated product list",
     method = "GET",
     parameters = Array(
       new Parameter(name = "firstName", in = ParameterIn.QUERY, example = "Olzhas"),
@@ -57,18 +57,18 @@ trait RestaurantHttpRoutes extends MainCodec {
         description = "OK",
         content = Array(
           new Content(
-            schema = new Schema(implementation = classOf[RestaurantListWithTotalDTO]),
+            schema = new Schema(implementation = classOf[ProductListWithTotalDTO]),
             mediaType = "application/json",
-            examples = Array(new ExampleObject(name = "RestaurantListWithTotalDTO", value = ""))
+            examples = Array(new ExampleObject(name = "ProductListWithTotalDTO", value = ""))
           )
         )
       ),
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  @Path("/restaurants")
-  @Tag(name = "Restaurants")
-  def paginateRestaurants: Route = {
+  @Path("/products")
+  @Tag(name = "Products")
+  def paginateProducts: Route = {
     get {
       pathEndOrSingleSlash {
         parameters(
@@ -88,8 +88,8 @@ trait RestaurantHttpRoutes extends MainCodec {
            pageSize,
            sort) => {
             onComplete {
-              restaurantService.paginate(
-                RestaurantService.generateFilters(
+              productService.paginate(
+                ProductService.generateFilters(
                   firstName = firstName,
                   lastName = lastName,
                   email = email,
@@ -111,8 +111,8 @@ trait RestaurantHttpRoutes extends MainCodec {
 
   @GET
   @Operation(
-    summary = "Get restaurant by id",
-    description = "Returns a full information about restaurant by id",
+    summary = "Get product by id",
+    description = "Returns a full information about product by id",
     method = "GET",
     parameters = Array(
       new Parameter(name = "id", in = ParameterIn.PATH, example = "", required = true),
@@ -123,20 +123,20 @@ trait RestaurantHttpRoutes extends MainCodec {
         description = "OK",
         content = Array(
           new Content(
-            schema = new Schema(implementation = classOf[Restaurant]),
-            examples = Array(new ExampleObject(name = "Restaurant", value = ""))
+            schema = new Schema(implementation = classOf[Product]),
+            examples = Array(new ExampleObject(name = "Product", value = ""))
           )
         )
       ),
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  @Path("/restaurants/{id}")
-  @Tag(name = "Restaurants")
-  def getRestaurantById: Route = {
+  @Path("/products/{id}")
+  @Tag(name = "Products")
+  def getProductById: Route = {
     get {
       path(Segment) { id =>
-        onComplete(restaurantService.getById(id)) {
+        onComplete(productService.getById(id)) {
           case Success(result) => complete(result)
           case Failure(exception) => HttpUtil.completeThrowable(exception)
         }
@@ -146,16 +146,16 @@ trait RestaurantHttpRoutes extends MainCodec {
 
   @POST
   @Operation(
-    summary = "Create restaurant",
-    description = "Creates new restaurant",
+    summary = "Create product",
+    description = "Creates new product",
     method = "POST",
     requestBody = new RequestBody(
       content = Array(
         new Content(
-          schema = new Schema(implementation = classOf[CreateRestaurantDTO]),
+          schema = new Schema(implementation = classOf[CreateProductDTO]),
           mediaType = "application/json",
           examples = Array(
-            new ExampleObject(name = "CreateRestaurantDTO", value = "")
+            new ExampleObject(name = "CreateProductDTO", value = "")
           )
         )
       ),
@@ -167,21 +167,21 @@ trait RestaurantHttpRoutes extends MainCodec {
         description = "OK",
         content = Array(
           new Content(
-            schema = new Schema(implementation = classOf[Restaurant]),
-            examples = Array(new ExampleObject(name = "Restaurant", value = ""))
+            schema = new Schema(implementation = classOf[Product]),
+            examples = Array(new ExampleObject(name = "Product", value = ""))
           )
         )
       ),
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  @Path("/restaurants")
-  @Tag(name = "Restaurants")
-  def createRestaurant: Route = {
+  @Path("/products")
+  @Tag(name = "Products")
+  def createProduct: Route = {
     post {
       pathEndOrSingleSlash {
-        entity(as[CreateRestaurantDTO]) { body =>
-          onComplete(restaurantService.create(body)) {
+        entity(as[CreateProductDTO]) { body =>
+          onComplete(productService.create(body)) {
             case Success(result) => complete(result)
             case Failure(exception) => HttpUtil.completeThrowable(exception)
           }
@@ -192,8 +192,8 @@ trait RestaurantHttpRoutes extends MainCodec {
 
   @PUT
   @Operation(
-    summary = "Update restaurant",
-    description = "Updates restaurant",
+    summary = "Update product",
+    description = "Updates product",
     method = "PUT",
     parameters = Array(
       new Parameter(name = "id", in = ParameterIn.PATH, example = "", required = true),
@@ -201,9 +201,9 @@ trait RestaurantHttpRoutes extends MainCodec {
     requestBody = new RequestBody(
       content = Array(
         new Content(
-          schema = new Schema(implementation = classOf[UpdateRestaurantDTO]),
+          schema = new Schema(implementation = classOf[UpdateProductDTO]),
           mediaType = "application/json",
-          examples = Array(new ExampleObject(name = "UpdateRestaurantDTO", value = ""))
+          examples = Array(new ExampleObject(name = "UpdateProductDTO", value = ""))
         )
       ),
       required = true
@@ -214,21 +214,21 @@ trait RestaurantHttpRoutes extends MainCodec {
         description = "OK",
         content = Array(
           new Content(
-            schema = new Schema(implementation = classOf[Restaurant]),
-            examples = Array(new ExampleObject(name = "Restaurant", value = ""))
+            schema = new Schema(implementation = classOf[Product]),
+            examples = Array(new ExampleObject(name = "Product", value = ""))
           )
         )
       ),
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  @Path("/restaurants/{id}")
-  @Tag(name = "Restaurants")
-  def updateRestaurant: Route = {
+  @Path("/products/{id}")
+  @Tag(name = "Products")
+  def updateProduct: Route = {
     put {
       path(Segment) { id =>
-        entity(as[UpdateRestaurantDTO]) { body =>
-          onComplete(restaurantService.update(id, body)) {
+        entity(as[UpdateProductDTO]) { body =>
+          onComplete(productService.update(id, body)) {
             case Success(result) => complete(result)
             case Failure(exception) => HttpUtil.completeThrowable(exception)
           }
@@ -239,8 +239,8 @@ trait RestaurantHttpRoutes extends MainCodec {
 
   @DELETE
   @Operation(
-    summary = "Deletes restaurant",
-    description = "Deletes restaurant",
+    summary = "Deletes product",
+    description = "Deletes product",
     method = "DELETE",
     parameters = Array(
       new Parameter(name = "id", in = ParameterIn.PATH, example = "", required = true),
@@ -253,12 +253,12 @@ trait RestaurantHttpRoutes extends MainCodec {
       new ApiResponse(responseCode = "500", description = "Internal server error")
     )
   )
-  @Path("/restaurants/{id}")
-  @Tag(name = "Restaurants")
-  def deleteRestaurant: Route = {
+  @Path("/products/{id}")
+  @Tag(name = "Products")
+  def deleteProduct: Route = {
     delete {
       path(Segment) { id =>
-        onComplete(restaurantService.delete(id)) {
+        onComplete(productService.delete(id)) {
           case Success(_) => complete(StatusCodes.NoContent)
           case Failure(exception) => HttpUtil.completeThrowable(exception)
         }

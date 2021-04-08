@@ -39,6 +39,7 @@ libraryDependencies ++= Seq(
   "joda-time"         % "joda-time"             % "2.10.5",
   "ch.qos.logback"    % "logback-classic"       % "1.2.3" % Runtime,
   //
+  "io.scalaland" %% "chimney" % "0.6.1"
 )
 
 enablePlugins(JavaAppPackaging)
@@ -55,7 +56,7 @@ val devVars = Map(
   "LOG_LEVEL" -> "DEBUG",
   "MONGO_CONNECTION_STRING" -> "mongodb+srv://admin:wqFerF1zogVVnyAO@cluster0.l04gc.mongodb.net",
   "MONGO_DATABASE" -> "dev_kezek",
-  "MONGO_CUSTOMER_COLLECTION" -> "restaurant",
+  "MONGO_PRODUCT_COLLECTION" -> "product",
   "HOST" -> "0.0.0.0",
   "SWAGGER_HOST" -> "",
   "SWAGGER_SCHEMES" -> "https",
@@ -65,7 +66,7 @@ val prodVars = Map(
   "LOG_LEVEL" -> "DEBUG",
   "MONGO_CONNECTION_STRING" -> "mongodb+srv://admin:wqFerF1zogVVnyAO@cluster0.l04gc.mongodb.net",
   "MONGO_DATABASE" -> "prod_kezek",
-  "MONGO_CUSTOMER_COLLECTION" -> "restaurant",
+  "MONGO_PRODUCT_COLLECTION" -> "product",
   "HOST" -> "0.0.0.0",
   "SWAGGER_HOST" -> "",
   "SWAGGER_SCHEMES" -> "https",
