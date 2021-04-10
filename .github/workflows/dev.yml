@@ -34,7 +34,6 @@ jobs:
           MONGO_PRODUCT_COLLECTION: product,
           MONGO_CATEGORY_COLLECTION: category,
           HOST: 0.0.0.0,
-          SWAGGER_HOST: "",
           SWAGGER_SCHEMES: https,
           ENV: dev,
         run: |
