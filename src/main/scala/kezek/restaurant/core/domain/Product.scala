@@ -9,5 +9,5 @@ case class Product(id: String,
                    discountInPercent: Int,
                    description: String,
                    `type`: String,
-                   image: String,
+                   image: Option[String],
                    categories: Seq[String])

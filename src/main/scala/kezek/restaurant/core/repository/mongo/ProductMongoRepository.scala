@@ -28,10 +28,7 @@ object ProductMongoRepository {
     if (filters.isEmpty) Document()
     else and(
       filters.map {
-        case ByFirstNameFilter(firstName) => equal("firstName", firstName)
-        case ByLastNameFilter(lastName) => equal("lastName", lastName)
-        case ByEmailFilter(email) => equal("email", email)
-        case ByPhoneNumberFilter(phoneNumber) => equal("phoneNumber", phoneNumber)
+        case ByCategoryIdFilter(categoryId) => equal("categories", categoryId)
         case other =>
           throw new RuntimeException(s"Failed to generate bson filter: $other not implemented")
       }: _*
@@ -94,13 +91,12 @@ class ProductMongoRepository()(implicit val mongoClient: MongoClient,
                         pageSize: Option[Int],
                         sortParams: Map[String, SortType]): Future[Seq[Product]] = {
     val filtersBson = fromFiltersToBson(filters)
-    val sortBson = orderBy(fromSortParamsToBson(sortParams), metaTextScore("score"))
+    val sortBson = fromSortParamsToBson(sortParams)
     val limit = pageSize.getOrElse(10)
     val offset = PaginationUtil.offset(page = page.getOrElse(1), size = limit)
 
     collection
       .find(filtersBson)
-      .projection(Projections.metaTextScore("score"))
       .sort(sortBson)
       .skip(offset)
       .limit(limit)

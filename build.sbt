@@ -18,6 +18,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-protobuf-v3" % akkaVersion,
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   //
+  "com.amazonaws" % "aws-java-sdk-s3" % "1.11.993",
+  //
   "org.mongodb.scala" %% "mongo-scala-driver" % "4.2.0",
   //
   "javax.ws.rs"                  % "javax.ws.rs-api"       % "2.1.1",
@@ -51,29 +53,3 @@ herokuAppName in Compile := Map(
 )(sys.props.getOrElse("env", "dev"))
 
 herokuJdkVersion in Compile := "1.8"
-
-val devVars = Map(
-  "LOG_LEVEL" -> "DEBUG",
-  "MONGO_CONNECTION_STRING" -> "mongodb+srv://admin:wqFerF1zogVVnyAO@cluster0.l04gc.mongodb.net",
-  "MONGO_DATABASE" -> "dev_kezek",
-  "MONGO_PRODUCT_COLLECTION" -> "product",
-  "HOST" -> "0.0.0.0",
-  "SWAGGER_HOST" -> "",
-  "SWAGGER_SCHEMES" -> "https",
-  "ENV" -> "dev",
-)
-val prodVars = Map(
-  "LOG_LEVEL" -> "DEBUG",
-  "MONGO_CONNECTION_STRING" -> "mongodb+srv://admin:wqFerF1zogVVnyAO@cluster0.l04gc.mongodb.net",
-  "MONGO_DATABASE" -> "prod_kezek",
-  "MONGO_PRODUCT_COLLECTION" -> "product",
-  "HOST" -> "0.0.0.0",
-  "SWAGGER_HOST" -> "",
-  "SWAGGER_SCHEMES" -> "https",
-  "ENV" -> "dev",
-)
-
-herokuConfigVars in Compile := Map(
-  "prod" -> prodVars,
-  "dev" -> devVars
-)(sys.props.getOrElse("env", "dev"))

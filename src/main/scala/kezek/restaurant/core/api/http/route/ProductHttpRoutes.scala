@@ -13,12 +13,13 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import io.swagger.v3.oas.annotations.{Operation, Parameter}
 import kezek.restaurant.core.codec.MainCodec
 import kezek.restaurant.core.domain.Product
-import kezek.restaurant.core.domain.dto.{CreateProductDTO, ProductListWithTotalDTO, UpdateProductDTO}
+import kezek.restaurant.core.domain.dto.{CreateProductDTO, ProductDTO, ProductListWithTotalDTO, UpdateProductDTO, UploadImageMultipartRequest}
 import kezek.restaurant.core.service.ProductService
 import kezek.restaurant.core.util.{HttpUtil, SortUtil}
 import org.joda.time.DateTime
 
 import javax.ws.rs._
+import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 trait ProductHttpRoutes extends MainCodec {
@@ -28,6 +29,8 @@ trait ProductHttpRoutes extends MainCodec {
   def productHttpRoutes: Route = {
     pathPrefix("products") {
       concat(
+        uploadProductImage,
+        deleteProductImage,
         updateProduct,
         getProductById,
         deleteProduct,
@@ -43,10 +46,10 @@ trait ProductHttpRoutes extends MainCodec {
     description = "Get filtered and paginated product list",
     method = "GET",
     parameters = Array(
-      new Parameter(name = "firstName", in = ParameterIn.QUERY, example = "Olzhas"),
-      new Parameter(name = "lastName", in = ParameterIn.QUERY, example = "Dairov"),
-      new Parameter(name = "email", in = ParameterIn.QUERY, example = "test@test.com"),
-      new Parameter(name = "phoneNumber", in = ParameterIn.QUERY, example = "+77777777777"),
+      new Parameter(name = "title", in = ParameterIn.QUERY, example = "ba9c3e3e-e593-49d7-b5e5-925cb8fb9b2a"),
+      new Parameter(name = "description", in = ParameterIn.QUERY, example = "ba9c3e3e-e593-49d7-b5e5-925cb8fb9b2a"),
+      new Parameter(name = "category", in = ParameterIn.QUERY, example = "ba9c3e3e-e593-49d7-b5e5-925cb8fb9b2a"),
+      new Parameter(name = "categoryId", in = ParameterIn.QUERY, example = "ba9c3e3e-e593-49d7-b5e5-925cb8fb9b2a"),
       new Parameter(name = "page", in = ParameterIn.QUERY, example = "1"),
       new Parameter(name = "pageSize", in = ParameterIn.QUERY, example = "10"),
       new Parameter(name = "sort", in = ParameterIn.QUERY, example = "+phoneNumber,-firstName")
@@ -72,28 +75,25 @@ trait ProductHttpRoutes extends MainCodec {
     get {
       pathEndOrSingleSlash {
         parameters(
-          "firstName".?,
-          "lastName".?,
-          "email".?,
-          "phoneNumber".?,
+          "categoryId".?,
+          "title".?,
+          "description".?,
           "page".as[Int].?,
           "pageSize".as[Int].?,
           "sort".?
         ) {
-          (firstName,
-           lastName,
-           email,
-           phoneNumber,
+          (categoryId,
+           title,
+           description,
            page,
            pageSize,
            sort) => {
             onComplete {
               productService.paginate(
                 ProductService.generateFilters(
-                  firstName = firstName,
-                  lastName = lastName,
-                  email = email,
-                  phoneNumber = phoneNumber,
+                  categoryId = categoryId,
+                  title = title,
+                  description = description
                 ),
                 page,
                 pageSize,
@@ -155,7 +155,7 @@ trait ProductHttpRoutes extends MainCodec {
           schema = new Schema(implementation = classOf[CreateProductDTO]),
           mediaType = "application/json",
           examples = Array(
-            new ExampleObject(name = "CreateProductDTO", value = "")
+            new ExampleObject(name = "CreateProductDTO", value = "{\n  \"title\": \"lime\",\n  \"slug\": \"lime\",\n  \"unit\": \"12 pc(s)\",\n  \"price\": 1.5,\n  \"salePrice\": 0,\n  \"discountInPercent\": 0,\n  \"description\": \"The lemon/lime, Citrus limon Osbeck, is a species of small evergreen tree in the flowering plant family Rutaceae, native to South Asia, primarily North eastern India.\",\n  \"type\": \"grocery\",\n  \"image\": \"https://res.cloudinary.com/redq-inc/image/upload/c_fit,q_auto:best,w_300/v1589614568/pickbazar/grocery/GreenLimes_jrodle.jpg\",\n  \"categories\": [\n\t\"id\": \"ba9c3e3e-e593-49d7-b5e5-925cb8fb9b2a\",\n  ]\n}")
           )
         )
       ),
@@ -260,6 +260,92 @@ trait ProductHttpRoutes extends MainCodec {
       path(Segment) { id =>
         onComplete(productService.delete(id)) {
           case Success(_) => complete(StatusCodes.NoContent)
+          case Failure(exception) => HttpUtil.completeThrowable(exception)
+        }
+      }
+    }
+  }
+
+  @POST
+  @Operation(
+    summary = "Upload product image",
+    description = "Uploads product image to s3 and deletes old image",
+    method = "POST",
+    parameters = Array(
+      new Parameter(name = "id", in = ParameterIn.PATH, example = "227564ee-0896-47dc-970a-0d75e1caf71b")
+    ),
+    requestBody = new RequestBody(
+      content = Array(
+        new Content(
+          schema = new Schema(implementation = classOf[UploadImageMultipartRequest]),
+          mediaType = "multipart/form-data"
+        )
+      )
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "OK",
+        content = Array(
+          new Content(
+            schema = new Schema(implementation = classOf[ProductDTO]),
+            examples = Array(new ExampleObject(name = "ProductDTO", value = "")),
+            mediaType = "application/json"
+          )
+        )
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  @Path("/products/{id}/image")
+  @Tag(name = "Products")
+  def uploadProductImage: Route = {
+    post {
+      path(Segment / "image") { id =>
+        withRequestTimeout(5.minutes) {
+          fileUpload("image") {
+            case (fileInfo, byteSource) => {
+              onComplete(productService.uploadProductImage(byteSource, id, fileInfo)) {
+                case Success(result) => complete(result)
+                case Failure(exception) => HttpUtil.completeThrowable(exception)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  @DELETE
+  @Operation(
+    summary = "Delete product image",
+    description = "Deletes product image",
+    method = "DELETE",
+    parameters = Array(
+      new Parameter(name = "id", in = ParameterIn.PATH, example = "227564ee-0896-47dc-970a-0d75e1caf71b"),
+    ),
+    responses = Array(
+      new ApiResponse(
+        responseCode = "200",
+        description = "OK",
+        content = Array(
+          new Content(
+            schema = new Schema(implementation = classOf[ProductDTO]),
+            examples = Array(new ExampleObject(name = "ProductDTO", value = "")),
+            mediaType = "application/json"
+          )
+        )
+      ),
+      new ApiResponse(responseCode = "500", description = "Internal server error")
+    )
+  )
+  @Path("/products/{id}/image")
+  @Tag(name = "Products")
+  def deleteProductImage: Route = {
+    delete {
+      path(Segment / "image") { productId =>
+        onComplete(productService.deleteProductImage(productId)) {
+          case Success(result) => complete(result)
           case Failure(exception) => HttpUtil.completeThrowable(exception)
         }
       }
