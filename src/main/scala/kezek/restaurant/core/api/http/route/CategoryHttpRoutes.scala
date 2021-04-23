@@ -64,16 +64,16 @@ trait CategoryHttpRoutes extends MainCodec {
   }
 
   @GET
-  @Operation(summary = "Get category by id",description = "Returns category by id")
-  @Parameter(name = "id", in = ParameterIn.PATH, example = "", required = true)
+  @Operation(summary = "Get category by slug",description = "Returns category by slug")
+  @Parameter(name = "slug", in = ParameterIn.PATH, example = "", required = true)
   @ApiResponse(responseCode = "200",description = "OK",content = Array(new Content(schema = new Schema(implementation = classOf[Category]))))
   @ApiResponse(responseCode = "500", description = "Internal server error")
-  @Path("/categories/{id}")
+  @Path("/categories/{slug}")
   @Tag(name = "Categories")
   def getCategoryById: Route = {
     get {
-      path(Segment) { id =>
-        onComplete(categoryService.getById(id)) {
+      path(Segment) { slug =>
+        onComplete(categoryService.getById(slug)) {
           case Success(result) => complete(result)
           case Failure(exception) => HttpUtil.completeThrowable(exception)
         }
@@ -121,17 +121,17 @@ trait CategoryHttpRoutes extends MainCodec {
 
   @PUT
   @Operation(summary = "Update category",description = "Updates category")
-  @Parameter(name = "id", in = ParameterIn.PATH, required = true)
+  @Parameter(name = "slug", in = ParameterIn.PATH, required = true)
   @RequestBody(required = true,content = Array(new Content(schema = new Schema(implementation = classOf[UpdateCategoryDTO]))))
   @ApiResponse(responseCode = "200",description = "OK",content = Array(new Content(schema = new Schema(implementation = classOf[Category]))))
   @ApiResponse(responseCode = "500", description = "Internal server error")
-  @Path("/categories/{id}")
+  @Path("/categories/{slug}")
   @Tag(name = "Categories")
   def updateCategory: Route = {
     put {
-      path(Segment) { id =>
+      path(Segment) { slug =>
         entity(as[UpdateCategoryDTO]) { body =>
-          onComplete(categoryService.update(id, body)) {
+          onComplete(categoryService.update(slug, body)) {
             case Success(result) => complete(result)
             case Failure(exception) => HttpUtil.completeThrowable(exception)
           }
@@ -144,12 +144,12 @@ trait CategoryHttpRoutes extends MainCodec {
   @Operation(summary = "Delete category", description = "Deletes category")
   @ApiResponse(responseCode = "204",description = "NoContent")
   @ApiResponse(responseCode = "500", description = "Internal server error")
-  @Path("/categories/{id}")
+  @Path("/categories/{slug}")
   @Tag(name = "Categories")
   def deleteCategory: Route = {
     delete {
-      path(Segment) { id =>
-        onComplete(categoryService.delete(id)) {
+      path(Segment) { slug =>
+        onComplete(categoryService.delete(slug)) {
           case Success(_) => complete(StatusCodes.NoContent)
           case Failure(exception) => HttpUtil.completeThrowable(exception)
         }
