@@ -44,7 +44,7 @@ trait ProductHttpRoutes extends MainCodec {
   @Parameter(name = "title", in = ParameterIn.QUERY)
   @Parameter(name = "description", in = ParameterIn.QUERY)
   @Parameter(name = "categorySlug", in = ParameterIn.QUERY)
-  @Parameter(name = "categorySlugList", in = ParameterIn.QUERY, schema = new Schema(implementation = Seq[String].getClass))
+  @Parameter(name = "categorySlugList", in = ParameterIn.QUERY, example = "[slug-1,slug-2]")
   @Parameter(name = "page", in = ParameterIn.QUERY, example = "1")
   @Parameter(name = "pageSize", in = ParameterIn.QUERY, example = "10")
   @Parameter(name = "sort", in = ParameterIn.QUERY, example = "+phoneNumber,-firstName")

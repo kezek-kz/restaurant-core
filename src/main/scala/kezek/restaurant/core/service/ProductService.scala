@@ -35,7 +35,7 @@ object ProductService extends MainCodec {
                       title: Option[String] = None,
                       description: Option[String] = None): Seq[ProductFilter] = {
     var filters: Seq[ProductFilter] = Seq.empty
-    if (categorySlugList.nonEmpty) filters = filters :+ ByCategorySlugListFilter(categorySlugList.get)
+    if (categorySlugList.nonEmpty) filters = filters :+ ByCategorySlugListFilter(categorySlugList)
     if (categorySlug.isDefined) filters = filters :+ ByCategorySlugFilter(categorySlug.get)
     if (title.isDefined) filters = filters :+ ByTitleFilter(title.get)
     if (description.isDefined) filters = filters :+ ByDescriptionFilter(description.get)
