@@ -17,10 +17,10 @@ trait CategoryRepository {
   def paginate(filters: Seq[CategoryFilter],
                page: Option[Int],
                pageSize: Option[Int],
-               sortParams: Map[String, SortType]): Future[Seq[Category]]
+               sortParams: Map[String, SortType]): Future[Set[Category]]
 
   def findAll(filters: Seq[CategoryFilter],
-              sortParams: Map[String, SortType]): Future[Seq[Category]]
+              sortParams: Map[String, SortType]): Future[Set[Category]]
 
   def count(filters: Seq[CategoryFilter]): Future[Long]
 

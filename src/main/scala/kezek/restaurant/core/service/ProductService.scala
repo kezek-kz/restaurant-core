@@ -13,7 +13,7 @@ import io.circe.syntax.EncoderOps
 import io.scalaland.chimney.dsl.TransformerOps
 import kezek.restaurant.core.aws.{AwsS3Client, S3Client}
 import kezek.restaurant.core.codec.MainCodec
-import kezek.restaurant.core.domain.CategoryFilter.ByMultipleIdsFilter
+import kezek.restaurant.core.domain.CategoryFilter.ByMultipleSlugFilter
 import kezek.restaurant.core.domain.ProductFilter._
 import kezek.restaurant.core.domain._
 import kezek.restaurant.core.domain.dto.{CreateProductDTO, ProductDTO, ProductListWithTotalDTO, UpdateProductDTO}
@@ -30,11 +30,13 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object ProductService extends MainCodec {
 
-  def generateFilters(categoryId: Option[String] = None,
+  def generateFilters(categorySlug: Option[String] = None,
+                      categorySlugList: Seq[String] = Seq.empty,
                       title: Option[String] = None,
                       description: Option[String] = None): Seq[ProductFilter] = {
     var filters: Seq[ProductFilter] = Seq.empty
-    if (categoryId.isDefined) filters = filters :+ ByCategoryIdFilter(categoryId.get)
+    if (categorySlugList.nonEmpty) filters = filters :+ ByCategorySlugListFilter(categorySlugList.get)
+    if (categorySlug.isDefined) filters = filters :+ ByCategorySlugFilter(categorySlug.get)
     if (title.isDefined) filters = filters :+ ByTitleFilter(title.get)
     if (description.isDefined) filters = filters :+ ByDescriptionFilter(description.get)
     filters
@@ -74,7 +76,7 @@ class ProductService()(implicit val mongoClient: MongoClient,
 
   def update(id: String, updateProductDTO: UpdateProductDTO): Future[ProductDTO] = {
     log.debug(s"update() was called {id: $id, updateProductDTO: $updateProductDTO}")
-    val product = updateProductDTO.into[Product].withFieldConst(_.id, id).transform
+    val product = updateProductDTO.into[Product].withFieldConst(_.id, id).enableOptionDefaultsToNone.transform
     productRepository.update(id, product).flatMap(attachCategoryToProduct)
   }
 
@@ -88,9 +90,17 @@ class ProductService()(implicit val mongoClient: MongoClient,
     }
   }
 
+  def createMany(createProductDTOs: Seq[CreateProductDTO]): Future[Seq[ProductDTO]] = {
+    log.debug(s"createMany() was called {createProductDTOs: ${createProductDTOs.asJson.noSpaces}}")
+    Future.sequence { createProductDTOs map create }
+  }
+
   def create(createProductDTO: CreateProductDTO): Future[ProductDTO] = {
     log.debug(s"create() was called {createProductDTO: ${createProductDTO.asJson.noSpaces}}")
-    val product = createProductDTO.into[Product].withFieldConst(_.id, UUID.randomUUID().toString).transform
+    val product = createProductDTO.into[Product]
+      .withFieldConst(_.id, UUID.randomUUID().toString)
+      .enableOptionDefaultsToNone
+      .transform
     productRepository.create(product).recover {
       case ex: MongoWriteException if ex.getCode == DUPLICATED_KEY_ERROR_CODE =>
         log.error(s"create() failed to create product due to duplicate key {ex: $ex, product: ${product.asJson.noSpaces}")
@@ -117,7 +127,7 @@ class ProductService()(implicit val mongoClient: MongoClient,
         productRepository.update(
           productId,
           product.copy(image = Some(imageUrl)).into[Product]
-            .withFieldConst(_.categories, product.categories.map(_.id))
+            .withFieldConst(_.categories, product.categories.map(_.slug))
             .transform
         ) flatMap attachCategoryToProduct
       }
@@ -132,7 +142,7 @@ class ProductService()(implicit val mongoClient: MongoClient,
           productRepository.update(
             productId,
             product.copy(image = None).into[Product]
-              .withFieldConst(_.categories, product.categories.map(_.id))
+              .withFieldConst(_.categories, product.categories.map(_.slug))
               .transform
           ) flatMap attachCategoryToProduct
         }
@@ -144,7 +154,7 @@ class ProductService()(implicit val mongoClient: MongoClient,
   }
 
   private def attachCategoryToProduct(product: Product): Future[ProductDTO] = {
-    categoryRepository.findAll(Seq(ByMultipleIdsFilter(product.categories)), Map("title" -> ASC)).map {
+    categoryRepository.findAll(Seq(ByMultipleSlugFilter(product.categories)), Map("title" -> ASC)).map {
       categories => {
         product.into[ProductDTO].withFieldConst(_.categories, categories).transform
       }

@@ -28,7 +28,10 @@ object ProductMongoRepository {
     if (filters.isEmpty) Document()
     else and(
       filters.map {
-        case ByCategoryIdFilter(categoryId) => equal("categories", categoryId)
+        case ByTitleFilter(title) => equal("title", title)
+        case ByDescriptionFilter(description) => equal("description", description)
+        case ByCategorySlugFilter(categorySlug) => equal("categories", categorySlug)
+        case ByCategorySlugListFilter(categorySlugList) => in("categories", categorySlugList)
         case other =>
           throw new RuntimeException(s"Failed to generate bson filter: $other not implemented")
       }: _*

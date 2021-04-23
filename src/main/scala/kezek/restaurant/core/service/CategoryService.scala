@@ -9,7 +9,7 @@ import io.circe.syntax.EncoderOps
 import io.scalaland.chimney.dsl.TransformerOps
 import kezek.restaurant.core.codec.MainCodec
 import kezek.restaurant.core.domain.CategoryFilter._
-import kezek.restaurant.core.domain.ProductFilter.ByCategoryIdFilter
+import kezek.restaurant.core.domain.ProductFilter.ByCategorySlugFilter
 import kezek.restaurant.core.domain._
 import kezek.restaurant.core.domain.dto.{CategoryListWithTotalDTO, CreateCategoryDTO, UpdateCategoryDTO}
 import kezek.restaurant.core.exception.ApiException
@@ -42,15 +42,15 @@ class CategoryService()(implicit val mongoClient: MongoClient,
   val categoryRepository: CategoryRepository = new CategoryMongoRepository()
   val productRepository: ProductRepository = new ProductMongoRepository()
 
-  def findAll(filters: Seq[CategoryFilter]): Future[Seq[Category]] = {
+  def findAll(filters: Seq[CategoryFilter]): Future[Set[Category]] = {
     log.debug(s"paginate() was called {filters: $filters}")
     categoryRepository.findAll(filters, Map("title" -> ASC))
   }
 
-  def update(id: String, updateCategoryDTO: UpdateCategoryDTO): Future[Category] = {
-    log.debug(s"update() was called {id: $id, updateCategoryDTO: $updateCategoryDTO}")
-    val category = updateCategoryDTO.into[Category].withFieldConst(_.id, id).transform
-    categoryRepository.update(id, category).recover {
+  def update(slug: String, updateCategoryDTO: UpdateCategoryDTO): Future[Category] = {
+    log.debug(s"update() was called {slug: $slug, updateCategoryDTO: $updateCategoryDTO}")
+    val category = updateCategoryDTO.into[Category].transform
+    categoryRepository.update(slug, category).recover {
       case ex: MongoWriteException if ex.getCode == DUPLICATED_KEY_ERROR_CODE =>
         log.error(s"update() failed to update category due to duplicate key {ex: $ex, category: ${category.asJson.noSpaces}")
         throw ApiException(StatusCodes.Conflict, s"Failed to update, category with slug '${category.slug}' already exists")
@@ -60,21 +60,24 @@ class CategoryService()(implicit val mongoClient: MongoClient,
     }
   }
 
-  def getById(id: String): Future[Category] = {
-    log.debug(s"getById() was called {id: $id}")
-    categoryRepository.findById(id).map {
+  def getById(slug: String): Future[Category] = {
+    log.debug(s"getById() was called {slug: $slug}")
+    categoryRepository.findById(slug).map {
       case Some(category) => category
       case None =>
-        log.error(s"getById() failed to find category {id: $id}")
-        throw ApiException(StatusCodes.NotFound, s"Failed to find category with id: $id")
+        log.error(s"getById() failed to find category {slug: $slug}")
+        throw ApiException(StatusCodes.NotFound, s"Failed to find category with slug: $slug")
     }
+  }
+
+  def createMany(createCategoryDTOs: Seq[CreateCategoryDTO]): Future[Seq[Category]] = {
+    log.debug(s"createMany() was called {createCategoryDTOs: ${createCategoryDTOs.asJson.noSpaces}}")
+    Future.sequence { createCategoryDTOs map create }
   }
 
   def create(createCategoryDTO: CreateCategoryDTO): Future[Category] = {
     log.debug(s"create() was called {createCategoryDTO: ${createCategoryDTO.asJson.noSpaces}}")
-    val category = createCategoryDTO.into[Category]
-      .withFieldConst(_.id, UUID.randomUUID().toString)
-      .transform
+    val category = createCategoryDTO.into[Category].transform
     categoryRepository.create(category).recover {
       case ex: MongoWriteException if ex.getCode == DUPLICATED_KEY_ERROR_CODE =>
         log.error(s"create() failed to create category due to duplicate key {ex: $ex, category: ${category.asJson.noSpaces}")
@@ -85,15 +88,15 @@ class CategoryService()(implicit val mongoClient: MongoClient,
     }
   }
 
-  def delete(id: String): Future[Unit] = {
-    log.debug(s"delete() was called {id: $id}")
+  def delete(slug: String): Future[Unit] = {
+    log.debug(s"delete() was called {slug: $slug}")
 
-    productRepository.count(Seq(ByCategoryIdFilter(id))).map { count =>
+    productRepository.count(Seq(ByCategorySlugFilter(slug))).map { count =>
       if(count == 0){
-        categoryRepository.delete(id)
+        categoryRepository.delete(slug)
       } else {
-        log.warn(s"delete() failed due to existence of products with category to delete {id: $id, count: $count}")
-        throw ApiException(StatusCodes.Conflict, s"Failed to delete category with id: $id, there are/is $count product(s) assigned to it")
+        log.warn(s"delete() failed due to existence of products with category to delete {slug: $slug, count: $count}")
+        throw ApiException(StatusCodes.Conflict, s"Failed to delete category with slug: $slug, there are/is $count product(s) assigned to it")
       }
     }
   }

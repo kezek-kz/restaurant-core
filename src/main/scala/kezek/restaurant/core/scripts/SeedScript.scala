@@ -57,16 +57,6 @@ object SeedScript {
     val collection: MongoCollection[Document] = database.getCollection(config.getString("db.mongo.collection.category"))
 
     collection.createIndex(
-      ascending("id"),
-      IndexOptions().unique(true)
-    ).toFuture().onComplete {
-      case Success(_) =>
-        log.debug("createCategoryCollectionIndexes() successfully created unique indexes for id")
-      case Failure(exception) =>
-        log.error(s"createCategoryCollectionIndexes() failed to create unique indexes for id{details: $exception}")
-    }
-
-    collection.createIndex(
       ascending("slug"),
       IndexOptions().unique(true)
     ).toFuture().onComplete {

@@ -27,7 +27,7 @@ object CategoryMongoRepository {
     else and(
       filters.map {
         case ByTitleFilter(title) => text(title)
-        case ByMultipleIdsFilter(ids) => in("id", ids: _*)
+        case ByMultipleSlugFilter(slugs) => in("slug", slugs.toSeq: _*)
         case other =>
           throw new RuntimeException(s"Failed to generate bson filter: $other not implemented")
       }: _*
@@ -81,7 +81,7 @@ class CategoryMongoRepository()(implicit val mongoClient: MongoClient,
   override def paginate(filters: Seq[CategoryFilter],
                         page: Option[Int],
                         pageSize: Option[Int],
-                        sortParams: Map[String, SortType]): Future[Seq[Category]] = {
+                        sortParams: Map[String, SortType]): Future[Set[Category]] = {
     val filtersBson = fromFiltersToBson(filters)
     val sortBson = fromSortParamsToBson(sortParams)
     val limit = pageSize.getOrElse(10)
@@ -93,11 +93,11 @@ class CategoryMongoRepository()(implicit val mongoClient: MongoClient,
       .skip(offset)
       .limit(limit)
       .toFuture()
-      .map(documents => documents map fromDocumentToCategory)
+      .map(documents => (documents map fromDocumentToCategory).toSet)
   }
 
   override def findAll(filters: Seq[CategoryFilter],
-                       sortParams: Map[String, SortType]): Future[Seq[Category]] = {
+                       sortParams: Map[String, SortType]): Future[Set[Category]] = {
     val filtersBson = fromFiltersToBson(filters)
     val sortBson = fromSortParamsToBson(sortParams)
 
@@ -105,7 +105,7 @@ class CategoryMongoRepository()(implicit val mongoClient: MongoClient,
       .find(filtersBson)
       .sort(sortBson)
       .toFuture()
-      .map(documents => documents map fromDocumentToCategory)
+      .map(documents => (documents map fromDocumentToCategory).toSet)
   }
 
   private def fromDocumentToCategory(document: Document): Category = {

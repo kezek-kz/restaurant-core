@@ -37,31 +37,13 @@ trait CategoryHttpRoutes extends MainCodec {
   }
 
   @GET
-  @Operation(
-    summary = "Get category list",
-    description = "Get filtered and paginated category list",
-    method = "GET",
-    parameters = Array(
-      new Parameter(name = "title", in = ParameterIn.QUERY, example = "vegetables"),
-      new Parameter(name = "page", in = ParameterIn.QUERY, example = "1"),
-      new Parameter(name = "pageSize", in = ParameterIn.QUERY, example = "20"),
-      new Parameter(name = "sort", in = ParameterIn.QUERY, example = "+title")
-    ),
-    responses = Array(
-      new ApiResponse(
-        responseCode = "200",
-        description = "OK",
-        content = Array(
-          new Content(
-            schema = new Schema(implementation = classOf[CategoryListWithTotalDTO]),
-            mediaType = "application/json",
-            examples = Array(new ExampleObject(name = "CategoryListWithTotalDTO", value = ""))
-          )
-        )
-      ),
-      new ApiResponse(responseCode = "500", description = "Internal server error")
-    )
-  )
+  @Operation(summary = "Get category list",description = "Get filtered and paginated category list")
+  @Parameter(name = "title", in = ParameterIn.QUERY)
+  @Parameter(name = "page", in = ParameterIn.QUERY, example = "1")
+  @Parameter(name = "pageSize", in = ParameterIn.QUERY, example = "20")
+  @Parameter(name = "sort", in = ParameterIn.QUERY, example = "+title")
+  @ApiResponse(responseCode = "200",description = "OK",content = Array(new Content(schema = new Schema(implementation = classOf[CategoryListWithTotalDTO]))))
+  @ApiResponse(responseCode = "500", description = "Internal server error")
   @Path("/categories")
   @Tag(name = "Categories")
   def paginateCategories: Route = {
@@ -82,27 +64,10 @@ trait CategoryHttpRoutes extends MainCodec {
   }
 
   @GET
-  @Operation(
-    summary = "Get category by id",
-    description = "Returns category by id",
-    method = "GET",
-    parameters = Array(
-      new Parameter(name = "id", in = ParameterIn.PATH, example = "", required = true),
-    ),
-    responses = Array(
-      new ApiResponse(
-        responseCode = "200",
-        description = "OK",
-        content = Array(
-          new Content(
-            schema = new Schema(implementation = classOf[Category]),
-            examples = Array(new ExampleObject(name = "Category", value = ""))
-          )
-        )
-      ),
-      new ApiResponse(responseCode = "500", description = "Internal server error")
-    )
-  )
+  @Operation(summary = "Get category by id",description = "Returns category by id")
+  @Parameter(name = "id", in = ParameterIn.PATH, example = "", required = true)
+  @ApiResponse(responseCode = "200",description = "OK",content = Array(new Content(schema = new Schema(implementation = classOf[Category]))))
+  @ApiResponse(responseCode = "500", description = "Internal server error")
   @Path("/categories/{id}")
   @Tag(name = "Categories")
   def getCategoryById: Route = {
@@ -117,83 +82,49 @@ trait CategoryHttpRoutes extends MainCodec {
   }
 
   @POST
-  @Operation(
-    summary = "Create category",
-    description = "Creates new category",
-    method = "POST",
-    requestBody = new RequestBody(
-      content = Array(
-        new Content(
-          schema = new Schema(implementation = classOf[CreateCategoryDTO]),
-          mediaType = "application/json",
-          examples = Array(
-            new ExampleObject(name = "CreateCategoryDTO", value = "{\n  \"title\": \"Fruits & Vegetables\",\n  \"slug\": \"fruits-and-vegetables\"\n}")
-          )
+  @Operation(summary = "Create category",description = "Creates new category")
+  @RequestBody(
+    content = Array(new Content(schema = new Schema(implementation = classOf[CreateCategoryDTO]),
+        examples = Array(
+          new ExampleObject(name = "CreateCategoryDTO", value = "{\n  \"title\": \"Fruits & Vegetables\",\n  \"slug\": \"fruits-and-vegetables\"\n}"),
+          new ExampleObject(name = "Create Many catergories", value = "[{\n  \"title\": \"Fruits & Vegetables\",\n  \"slug\": \"fruits-and-vegetables\"\n}]")
         )
-      ),
-      required = true
+      )
     ),
-    responses = Array(
-      new ApiResponse(
-        responseCode = "200",
-        description = "OK",
-        content = Array(
-          new Content(
-            schema = new Schema(implementation = classOf[Category]),
-            examples = Array(new ExampleObject(name = "Category", value = ""))
-          )
-        )
-      ),
-      new ApiResponse(responseCode = "500", description = "Internal server error")
-    )
+    required = true
   )
+  @ApiResponse(responseCode = "200",description = "OK",content = Array(new Content(schema = new Schema(implementation = classOf[Seq[Category]]))))
+  @ApiResponse(responseCode = "200",description = "OK",content = Array(new Content(schema = new Schema(implementation = classOf[Category]))))
+  @ApiResponse(responseCode = "500", description = "Internal server error")
   @Path("/categories")
   @Tag(name = "Categories")
   def createCategory: Route = {
     post {
       pathEndOrSingleSlash {
-        entity(as[CreateCategoryDTO]) { body =>
-          onComplete(categoryService.create(body)) {
-            case Success(result) => complete(result)
-            case Failure(exception) => HttpUtil.completeThrowable(exception)
-          }
-        }
+        concat (
+          entity(as[CreateCategoryDTO]) { body =>
+            onComplete(categoryService.create(body)) {
+              case Success(result) => complete(result)
+              case Failure(exception) => HttpUtil.completeThrowable(exception)
+            }
+          },
+          entity(as[Seq[CreateCategoryDTO]]) { body =>
+            onComplete(categoryService.createMany(body)) {
+              case Success(result) => complete(result)
+              case Failure(exception) => HttpUtil.completeThrowable(exception)
+            }
+          },
+        )
       }
     }
   }
 
   @PUT
-  @Operation(
-    summary = "Update category",
-    description = "Updates category",
-    method = "PUT",
-    parameters = Array(
-      new Parameter(name = "id", in = ParameterIn.PATH, example = "", required = true),
-    ),
-    requestBody = new RequestBody(
-      content = Array(
-        new Content(
-          schema = new Schema(implementation = classOf[UpdateCategoryDTO]),
-          mediaType = "application/json",
-          examples = Array(new ExampleObject(name = "UpdateCategoryDTO", value = "{\n  \"title\": \"Fruits & Vegetables\",\n  \"slug\": \"fruits-and-vegetables\"\n}"))
-        )
-      ),
-      required = true
-    ),
-    responses = Array(
-      new ApiResponse(
-        responseCode = "200",
-        description = "OK",
-        content = Array(
-          new Content(
-            schema = new Schema(implementation = classOf[Category]),
-            examples = Array(new ExampleObject(name = "Category", value = ""))
-          )
-        )
-      ),
-      new ApiResponse(responseCode = "500", description = "Internal server error")
-    )
-  )
+  @Operation(summary = "Update category",description = "Updates category")
+  @Parameter(name = "id", in = ParameterIn.PATH, required = true)
+  @RequestBody(required = true,content = Array(new Content(schema = new Schema(implementation = classOf[UpdateCategoryDTO]))))
+  @ApiResponse(responseCode = "200",description = "OK",content = Array(new Content(schema = new Schema(implementation = classOf[Category]))))
+  @ApiResponse(responseCode = "500", description = "Internal server error")
   @Path("/categories/{id}")
   @Tag(name = "Categories")
   def updateCategory: Route = {
@@ -210,21 +141,9 @@ trait CategoryHttpRoutes extends MainCodec {
   }
 
   @DELETE
-  @Operation(
-    summary = "Delete category",
-    description = "Deletes category",
-    method = "DELETE",
-    parameters = Array(
-      new Parameter(name = "id", in = ParameterIn.PATH, example = "", required = true),
-    ),
-    responses = Array(
-      new ApiResponse(
-        responseCode = "204",
-        description = "OK",
-      ),
-      new ApiResponse(responseCode = "500", description = "Internal server error")
-    )
-  )
+  @Operation(summary = "Delete category", description = "Deletes category")
+  @ApiResponse(responseCode = "204",description = "NoContent")
+  @ApiResponse(responseCode = "500", description = "Internal server error")
   @Path("/categories/{id}")
   @Tag(name = "Categories")
   def deleteCategory: Route = {

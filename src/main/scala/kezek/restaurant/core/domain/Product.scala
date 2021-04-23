@@ -3,11 +3,9 @@ package kezek.restaurant.core.domain
 case class Product(id: String,
                    title: String,
                    slug: String,
-                   unit: String,
-                   price: BigDecimal,
-                   salePrice: BigDecimal,
-                   discountInPercent: Int,
-                   description: String,
-                   `type`: String,
+                   unit: Option[String],
+                   firstPrice: BigDecimal,
+                   secondPrice: Option[BigDecimal],
+                   description: Option[String],
                    image: Option[String],
-                   categories: Seq[String])
+                   categories: Set[String])
