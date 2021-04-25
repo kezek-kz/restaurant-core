@@ -10,13 +10,13 @@ import kezek.restaurant.core.service.CategoryService
 
 import javax.ws.rs.{GET, Path}
 
-@Path("/api/v1")
+@Path("/api")
 trait HttpRoutes
   extends CategoryHttpRoutes
   with ProductHttpRoutes {
 
   val routes: Route =
-    pathPrefix("api" / "v1") {
+    pathPrefix("api") {
       concat(
         healthcheck,
         productHttpRoutes,
