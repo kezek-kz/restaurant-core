@@ -57,7 +57,7 @@ trait ProductHttpRoutes extends MainCodec {
       pathEndOrSingleSlash {
         parameters(
           "categorySlug".?,
-          "categorySlugList".as[Seq[String]],
+           "categorySlugList".as[Seq[String]].?,
           "title".?,
           "description".?,
           "page".as[Int].?,
